@@ -1,5 +1,6 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from textblob import TextBlob
+import os
 
 aplicacao = Flask(__name__)
 
@@ -14,49 +15,40 @@ def analisar_sentimento():
     analise = TextBlob(texto)
     polaridade = analise.sentiment.polarity
 
-    if polaridade > 0:
-        classificacao = "Positivo 😀"
-    elif polaridade < 0:
-        classificacao = "Negativo 😡"
+    if polaridade > 0.1:
+        classificacao = "Positivo"
+        emoji = "😀"
+        cor = "#4CAF50"
+        descricao = "O texto expressa sentimentos positivos!"
+    elif polaridade < -0.1:
+        classificacao = "Negativo"
+        emoji = "😡"
+        cor = "#F44336"
+        descricao = "O texto expressa sentimentos negativos."
     else:
-        classificacao = "Neutro 😐"
+        classificacao = "Neutro"
+        emoji = "😐"
+        cor = "#FF9800"
+        descricao = "O texto é neutro em relação aos sentimentos."
+
+    # Calcular porcentagem
+    porcentagem = abs(polaridade) * 100
 
     resposta = {
         "texto": texto,
         "polaridade": polaridade,
-        "classificacao": classificacao
+        "classificacao": classificacao,
+        "emoji": emoji,
+        "cor": cor,
+        "descricao": descricao,
+        "porcentagem": round(porcentagem, 1)
     }
 
     return jsonify(resposta), 200
 
 @aplicacao.route("/", methods=["GET"])
-def pagina_teste():
-    return """
-    <html>
-      <head><meta charset="utf-8"><title>Analisador de Sentimentos</title></head>
-      <body>
-        <h2>Analisador de Sentimentos</h2>
-        <form method="post" action="/analisar" onsubmit="event.preventDefault(); enviar();">
-          <textarea id="texto" rows="6" cols="60" placeholder="Cole um texto aqui..."></textarea><br/>
-          <button type="submit">Analisar</button>
-        </form>
-        <pre id="resultado"></pre>
-
-        <script>
-          async function enviar() {
-            const texto = document.getElementById('texto').value;
-            const res = await fetch('/analisar', {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({ texto })
-            });
-            const json = await res.json();
-            document.getElementById('resultado').textContent = JSON.stringify(json, null, 2);
-          }
-        </script>
-      </body>
-    </html>
-    """
+def pagina_principal():
+    return render_template('index.html')
 
 if __name__ == "__main__":
     aplicacao.run(debug=True)
